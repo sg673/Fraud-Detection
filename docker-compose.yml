@@ -31,27 +31,19 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
   spark:
-    image: bitnami/spark:3.5
+    image: apache/spark:3.5.0
     container_name: spark
     depends_on:
       - kafka
-    environment:
-      - SPARK_MODE=master
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
     ports:
       - "4040:4040" 
     volumes:
-      - ./Consumer:/opt/Consumer
+      - ./spark-app:/opt/spark-app
     command: >
-      bash -c "
-      spark-submit
+      /opt/spark/bin/spark-submit
       --master local[*]
       --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0
-      /opt/Consumer/consumer.py
-      "
+      /opt/spark-app/fraud_streaming.py
 
   kafka-ui:
     image: provectuslabs/kafka-ui
