@@ -40,12 +40,7 @@ services:
       "
       echo 'Waiting for Kafka...' &&
       cub kafka-ready -b kafka:29092 1 30 &&
-      kafka-topics --create
-        --topic transactions
-        --bootstrap-server kafka:29092
-        --partitions 3
-        --replication-factor 1
-        || echo 'Topic already exists'
+      kafka-topics --create --topic transactions --bootstrap-server kafka:29092 --partitions 3 --replication-factor 1 || echo 'Topic already exists'
       "
 
   spark:
@@ -75,4 +70,19 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: frauddb
+      POSTGRES_USER: fraud_user
+      POSTGRES_PASSWORD: fraud_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
 
