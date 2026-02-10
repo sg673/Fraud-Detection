@@ -29,6 +29,24 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-init
+    depends_on:
+      - kafka
+    entrypoint: ["/bin/bash", "-c"]
+    command: >
+      "
+      echo 'Waiting for Kafka...' &&
+      cub kafka-ready -b kafka:29092 1 30 &&
+      kafka-topics --create
+        --topic transactions
+        --bootstrap-server kafka:29092
+        --partitions 3
+        --replication-factor 1
+        || echo 'Topic already exists'
+      "
 
   spark:
     image: apache/spark:3.5.0
@@ -38,12 +56,14 @@ services:
     ports:
       - "4040:4040" 
     volumes:
-      - ./spark-app:/opt/spark-app
+      - ./Consumer:/opt/Consumer
+      - ./ivy-cache:/home/spark/.ivy2
     command: >
       /opt/spark/bin/spark-submit
       --master local[*]
+      --conf spark.jars.ivy=/home/spark/.ivy2
       --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0
-      /opt/spark-app/fraud_streaming.py
+      /opt/Consumer/consumer.py
 
   kafka-ui:
     image: provectuslabs/kafka-ui
