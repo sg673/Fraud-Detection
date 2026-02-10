@@ -1,5 +1,12 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col
+from pyspark.sql.functions import (
+    from_json,
+    col,
+    count,
+    window,
+    lit,
+    when,
+)
 from pyspark.sql.types import (
     StructType,
     StructField,
@@ -8,6 +15,24 @@ from pyspark.sql.types import (
     DoubleType,
     BooleanType,
 )
+
+
+def write_to_postgres(batch_df, batch_id):
+    (
+        batch_df
+        .write
+        .mode("append")
+        .jdbc(
+            url="jdbc:postgresql://postgres:5432/frauddb",
+            table="fraud_velocity_windows",
+            properties={
+                "user": "fraud_user",
+                "password": "fraud_pass",
+                "driver": "org.postgresql.Driver"
+            },
+        )
+    )
+
 
 spark = (
     SparkSession.builder
@@ -47,22 +72,53 @@ schema = StructType([
 # -----------------------------
 # Parse JSON
 # -----------------------------
-parsed_df = (
+events = (
     kafka_df
     .selectExpr("CAST(value AS STRING)")
     .select(from_json(col("value"), schema).alias("data"))
     .select("data.*")
+    .withColumn("event_time", col("timestamp").cast("timestamp"))
 )
 
-# -----------------------------
-# Output (debug)
-# -----------------------------
+velocity_agg = (
+    events
+    .withWatermark("event_time", "2 minutes")
+    .groupBy(
+        col("user_id"),
+        window(col("event_time"), "1 minute")
+    )
+    .agg(
+        count("*").alias("tx_count"),
+    )
+)
+
+fraud_scores = (
+    velocity_agg
+    .withColumn(
+        "velocity_flag",
+        col("tx_count") > lit(5)
+    )
+    .withColumn(
+        "risk_score",
+        when(col("tx_count") > 5, lit(0.8))
+        .otherwise(col("tx_count") / lit(10.0))
+    )
+    .select(
+        col("user_id"),
+        col("window.start").alias("window_start"),
+        col("window.end").alias("window_end"),
+        col("tx_count"),
+        col("velocity_flag"),
+        col("risk_score")
+    )
+)
+
+
 query = (
-    parsed_df
+    fraud_scores
     .writeStream
-    .format("console")
+    .foreachBatch(write_to_postgres)
     .outputMode("append")
-    .option("truncate", False)
     .start()
 )
 
