@@ -6,6 +6,9 @@ from pyspark.sql.functions import (
     window,
     lit,
     when,
+    sum,
+    avg,
+    round,
 )
 from pyspark.sql.types import (
     StructType,
@@ -89,6 +92,8 @@ velocity_agg = (
     )
     .agg(
         count("*").alias("tx_count"),
+        sum("amount").alias("sum_amount"),
+        avg("amount").alias("avg_amount"),
     )
 )
 
@@ -99,18 +104,48 @@ fraud_scores = (
         col("tx_count") > lit(5)
     )
     .withColumn(
-        "risk_score",
-        when(col("tx_count") > 5, lit(0.8))
-        .otherwise(col("tx_count") / lit(10.0))
+        "amount_flag",
+        col("sum_amount") > lit(1000)
     )
+    .withColumn(
+        "burst_flag",
+        col("tx_count") > lit(10)
+    )
+
+    .withColumn(
+        "risk_score",
+        round(
+            when(col("velocity_flag"), 0.4).otherwise(0.0) +
+            when(col("amount_flag"), 0.4).otherwise(0.0) +
+            when(col("burst_flag"), 0.2).otherwise(0.0),
+            2
+        )
+    )
+
+    .withColumn(
+        "risk_level",
+        when(col("risk_score") >= 0.8, "HIGH")
+        .when(col("risk_score") >= 0.4, "MEDIUM")
+        .otherwise("LOW")
+    )
+
     .select(
         col("user_id"),
         col("window.start").alias("window_start"),
         col("window.end").alias("window_end"),
+
         col("tx_count"),
+        col("sum_amount"),
+        col("avg_amount"),
+
         col("velocity_flag"),
-        col("risk_score")
+        col("amount_flag"),
+        col("burst_flag"),
+
+        col("risk_score"),
+        col("risk_level"),
     )
+
 )
 
 
