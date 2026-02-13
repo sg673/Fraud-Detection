@@ -25,5 +25,4 @@ class UserStatsProcessor:
 
     def process_batch(self, batch_df: DataFrame, batch_id: int):
         """Write user statistics batch to user_statistics table."""
-
-        self.db_writer.write_to_table(batch_df, "user_statistics", "overwrite")
+        self.db_writer.upsert_user_statistics(batch_df)
