@@ -9,6 +9,9 @@ from pyspark.sql.functions import (
     sum,
     avg,
     round,
+    max,
+    approx_count_distinct,
+    current_timestamp,
 )
 from pyspark.sql.types import (
     StructType,
@@ -28,6 +31,23 @@ def write_to_postgres(batch_df, batch_id):
         .jdbc(
             url="jdbc:postgresql://postgres:5432/frauddb",
             table="fraud_velocity_windows",
+            properties={
+                "user": "fraud_user",
+                "password": "fraud_pass",
+                "driver": "org.postgresql.Driver"
+            },
+        )
+    )
+
+
+def write_user_stats(batch_df, batch_id):
+    (
+        batch_df
+        .write
+        .mode("overwrite")
+        .jdbc(
+            url="jdbc:postgresql://postgres:5432/frauddb",
+            table="user_statistics",
             properties={
                 "user": "fraud_user",
                 "password": "fraud_pass",
@@ -148,8 +168,22 @@ fraud_scores = (
 
 )
 
+user_stats = (
+    events
+    .groupBy("user_id")
+    .agg(
+        count("*").alias("total_transactions"),
+        sum("amount").alias("total_amount"),
+        avg("amount").alias("avg_transaction_amount"),
+        max("amount").alias("max_transaction_amount"),
+        approx_count_distinct("country").alias("distinct_locations")
+    )
+    .withColumn("last_seen_location", lit(None).cast("string"))
+    .withColumn("last_updated", current_timestamp())
+)
 
-query = (
+
+fraud_query = (
     fraud_scores
     .writeStream
     .foreachBatch(write_to_postgres)
@@ -157,4 +191,14 @@ query = (
     .start()
 )
 
-query.awaitTermination()
+user_stats_query = (
+    user_stats
+    .writeStream
+    .foreachBatch(write_user_stats)
+    .outputMode("complete")
+    .option("checkpointLocation", "tmp/checkpoints_user_stats")
+    .start()
+)
+
+fraud_query.awaitTermination()
+user_stats_query.awaitTermination()
