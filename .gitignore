@@ -1,2 +1,5 @@
 .venv
 kafka
+ivy-cache
+
+__pycache__
