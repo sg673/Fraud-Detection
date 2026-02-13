@@ -9,11 +9,11 @@ CREATE TABLE fraud_velocity_windows (
     tx_count BIGINT NOT NULL,
     sum_amount DOUBLE PRECISION NOT NULL,
     avg_amount DOUBLE PRECISION NOT NULL,
-    velocity_flag BOOLEAN NOT NULL,
-    amount_flag BOOLEAN NOT NULL,
     amount_deviation_ratio DOUBLE PRECISION,
-    deviation_flag BOOLEAN,
-    risk_score DOUBLE PRECISION NOT NULL,
+    velocity_prob DOUBLE PRECISION NOT NULL,
+    amount_prob DOUBLE PRECISION NOT NULL,
+    deviation_prob DOUBLE PRECISION NOT NULL,
+    fraud_probability DOUBLE PRECISION NOT NULL,
     risk_level VARCHAR(10) NOT NULL,
     PRIMARY KEY (user_id, window_start)
 );
@@ -32,5 +32,5 @@ CREATE TABLE user_statistics (
 -- Indexes for performance
 CREATE INDEX idx_fraud_window_end ON fraud_velocity_windows(window_end);
 CREATE INDEX idx_fraud_risk_level ON fraud_velocity_windows(risk_level);
-CREATE INDEX idx_fraud_risk_score ON fraud_velocity_windows(risk_score DESC);
+CREATE INDEX idx_fraud_risk_score ON fraud_velocity_windows(fraud_probability DESC);
 CREATE INDEX idx_user_stats_updated ON user_statistics(last_updated);

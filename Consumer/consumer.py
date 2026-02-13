@@ -1,9 +1,9 @@
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
 from threading import Thread
 from config import Config
 from database import DatabaseWriter
 from transformations import parse_kafka_events, compute_velocity_aggregates, compute_user_statistics
-from fraud_detection import apply_fraud_flags
 from stream_processors import FraudScoreProcessor, UserStatsProcessor
 
 
@@ -13,7 +13,7 @@ def main():
 
     spark = SparkSession.builder.appName(  # type: ignore
         "FraudStreaming").getOrCreate()
-    spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("ERROR")
 
     db_writer = DatabaseWriter(spark, config.database)
     fraud_processor = FraudScoreProcessor(db_writer, config)
@@ -33,7 +33,14 @@ def main():
     velocity_agg = compute_velocity_aggregates(
         events, config.stream.velocity_watermark, config.stream.velocity_window
     )
-    fraud_scores = apply_fraud_flags(velocity_agg, config.fraud)
+    fraud_scores = velocity_agg.select(
+        col("user_id"),
+        col("window.start").alias("window_start"),
+        col("window.end").alias("window_end"),
+        col("tx_count"),
+        col("sum_amount"),
+        col("avg_amount")
+    )
     user_stats = compute_user_statistics(
         events, config.stream.user_stats_watermark)
 
