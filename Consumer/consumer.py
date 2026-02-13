@@ -21,11 +21,62 @@ from pyspark.sql.types import (
     DoubleType,
     BooleanType,
 )
+from threading import Thread
 
 
 def write_to_postgres(batch_df, batch_id):
+
+    user_stats_df = (
+        spark
+        .read
+        .jdbc(
+            url="jdbc:postgresql://postgres:5432/frauddb",
+            table="user_statistics",
+            properties={
+                "user": "fraud_user",
+                "password": "fraud_pass",
+                "driver": "org.postgresql.Driver"
+            }
+        )
+        .cache()
+    )
+
+    enriched_df = batch_df.join(
+        user_stats_df,
+        on="user_id",
+        how="left"
+    )
+
+    enriched_df = (
+        enriched_df
+        .withColumn(
+            "amount_deviation_ratio",
+            when(col("avg_transaction_amount") != 0, col("avg_amount") /
+                 col("avg_transaction_amount")).otherwise(0)
+        )
+        .withColumn(
+            "deviation_flag",
+            col("amount_deviation_ratio") > 3
+        )
+        .withColumn(
+            "risk_score",
+            round(
+                when(col("velocity_flag"), 0.4).otherwise(0.0) +
+                when(col("amount_flag"), 0.4).otherwise(0.0) +
+                when(col("deviation_flag"), 0.2).otherwise(0.0),
+                2
+            )
+        )
+        .withColumn(
+            "risk_level",
+            when(col("risk_score") >= 0.8, "HIGH")
+            .when(col("risk_score") >= 0.4, "MEDIUM")
+            .otherwise("LOW")
+        )
+    )
+
     (
-        batch_df
+        enriched_df
         .write
         .mode("append")
         .jdbc(
@@ -127,28 +178,6 @@ fraud_scores = (
         "amount_flag",
         col("sum_amount") > lit(1000)
     )
-    .withColumn(
-        "burst_flag",
-        col("tx_count") > lit(10)
-    )
-
-    .withColumn(
-        "risk_score",
-        round(
-            when(col("velocity_flag"), 0.4).otherwise(0.0) +
-            when(col("amount_flag"), 0.4).otherwise(0.0) +
-            when(col("burst_flag"), 0.2).otherwise(0.0),
-            2
-        )
-    )
-
-    .withColumn(
-        "risk_level",
-        when(col("risk_score") >= 0.8, "HIGH")
-        .when(col("risk_score") >= 0.4, "MEDIUM")
-        .otherwise("LOW")
-    )
-
     .select(
         col("user_id"),
         col("window.start").alias("window_start"),
@@ -160,16 +189,13 @@ fraud_scores = (
 
         col("velocity_flag"),
         col("amount_flag"),
-        col("burst_flag"),
-
-        col("risk_score"),
-        col("risk_level"),
     )
 
 )
 
 user_stats = (
     events
+    .withWatermark("event_time", "5 minutes")
     .groupBy("user_id")
     .agg(
         count("*").alias("total_transactions"),
@@ -178,7 +204,6 @@ user_stats = (
         max("amount").alias("max_transaction_amount"),
         approx_count_distinct("country").alias("distinct_locations")
     )
-    .withColumn("last_seen_location", lit(None).cast("string"))
     .withColumn("last_updated", current_timestamp())
 )
 
@@ -188,6 +213,7 @@ fraud_query = (
     .writeStream
     .foreachBatch(write_to_postgres)
     .outputMode("append")
+    .option("checkpointLocation", "tmp/checkpoints_fraud_scores")
     .start()
 )
 
@@ -200,5 +226,5 @@ user_stats_query = (
     .start()
 )
 
-fraud_query.awaitTermination()
+Thread(target=fraud_query.awaitTermination).start()
 user_stats_query.awaitTermination()
