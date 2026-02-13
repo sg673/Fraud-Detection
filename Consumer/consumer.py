@@ -73,6 +73,20 @@ def write_to_postgres(batch_df, batch_id):
             .when(col("risk_score") >= 0.4, "MEDIUM")
             .otherwise("LOW")
         )
+        .select(
+            col("user_id"),
+            col("window_start"),
+            col("window_end"),
+            col("tx_count"),
+            col("sum_amount"),
+            col("avg_amount"),
+            col("velocity_flag"),
+            col("amount_flag"),
+            col("amount_deviation_ratio"),
+            col("deviation_flag"),
+            col("risk_score"),
+            col("risk_level")
+        )
     )
 
     (
