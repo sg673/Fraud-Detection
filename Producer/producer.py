@@ -75,12 +75,15 @@ def generate_transaction(user_id):
 if __name__ == "__main__":
 
     print("Starting transaction producer...")
-
+    total_transactions = 0
     while True:
         user_id = random.randint(1, NUM_USERS)
         transaction = generate_transaction(user_id)
 
         producer.send(TOPIC_NAME, transaction)
-        print(transaction)
+        total_transactions += 1
+        print("\r Sent transaction #{}".format(
+            total_transactions), end="", flush=True)
+        # print(transaction)
 
         time.sleep(random.uniform(0.1, 0.5))
