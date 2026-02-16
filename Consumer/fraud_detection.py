@@ -9,9 +9,9 @@ def calculate_velocity_probability(df: DataFrame, thresholds: FraudThresholds) -
     return df.withColumn(
         "velocity_prob",
         when(col("tx_count") > lambda_param,
-             1 - exp(-lambda_param * sql_pow(lambda_param, col("tx_count")) /
-                     (col("tx_count") + 1))).otherwise(0.0)
-
+             (col("tx_count") - lambda_param) /
+             (col("tx_count") + lambda_param)
+             ).otherwise(0.0)
     )
 
 

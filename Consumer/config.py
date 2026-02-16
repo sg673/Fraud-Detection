@@ -25,7 +25,7 @@ class KafkaConfig:
 
 @dataclass
 class FraudThresholds:
-    velocity_threshold: int = 5
+    velocity_threshold: int = 3
     amount_threshold: int = 1000
     deviation_threshold: float = 3.0
     high_risk_threshold: float = 0.8
