@@ -1,5 +1,5 @@
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import col, lit, when, round, exp, pow as sql_pow
+from pyspark.sql.functions import col, lit, when, round, least
 from config import FraudThresholds
 
 
@@ -19,8 +19,9 @@ def calculate_amount_probability(df: DataFrame, thresholds: FraudThresholds) -> 
     """Calculate probability of fraud based on amount deviation."""
     return df.withColumn(
         "amount_prob",
-        when(col("avg_transaction_amount") > 0,
-             1 / (1 + exp(-0.01 * (col("sum_amount") - thresholds.amount_threshold)))
+        when(col("sum_amount") > thresholds.amount_threshold,
+             (col("sum_amount") - thresholds.amount_threshold) /
+             (col("sum_amount") + thresholds.amount_threshold)
              ).otherwise(0.0)
     )
 
@@ -35,7 +36,7 @@ def calculate_deviation_probability(df: DataFrame, thresholds: FraudThresholds) 
         "deviation_prob",
         when(col("amount_deviation_ratio") > thresholds.deviation_threshold,
              (col("amount_deviation_ratio") - thresholds.deviation_threshold) /
-             (col("amount_deviation_ratio") + 1)).otherwise(0.0)
+             (col("amount_deviation_ratio") + thresholds.deviation_threshold)).otherwise(0.0)
     )
 
 
@@ -53,12 +54,12 @@ def enrich_with_risk_score(batch_df: DataFrame, user_stats_df: DataFrame, thresh
         df_with_probs
         .withColumn(
             "fraud_probability",
-            round(
-                1 - (1 - col("velocity_prob") * thresholds.velocity_weight) *
-                    (1 - col("amount_prob") * thresholds.amount_weight) *
-                    (1 - col("deviation_prob") * thresholds.deviation_weight),
+            least(round(
+                col("velocity_prob") * thresholds.velocity_weight +
+                col("amount_prob") * thresholds.amount_weight +
+                col("deviation_prob") * thresholds.deviation_weight,
                 4
-            )
+            ), lit(1.0))
         )
 
         .withColumn(
