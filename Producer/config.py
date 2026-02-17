@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import os
 
 
 @dataclass
@@ -22,6 +23,8 @@ class UserConfig:
         "Starbucks": {"category": "food", "avg": 8, "std": 4},
         "Shell": {"category": "fuel", "avg": 50, "std": 15},
     }
+    USER_DATA_PATH = os.path.join(os.path.dirname(
+        os.path.realpath(__file__)), "data\\profiles.json")
 
 
 class Config:

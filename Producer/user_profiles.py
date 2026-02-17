@@ -6,7 +6,6 @@ import random
 from faker import Faker
 import os
 from config import Config
-dir_path = os.path.dirname(os.path.realpath(__file__))
 
 config = Config()
 
@@ -28,7 +27,7 @@ def generate_profiles():
             "ip_address": fake.ipv4(),
         }
 
-    with open(os.path.join(dir_path, 'profiles.json'), "w") as f:
+    with open(config.UserConfig.USER_DATA_PATH, "w") as f:
         json.dump(users, f, indent=2)
 
     return users
