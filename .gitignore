@@ -4,4 +4,4 @@ ivy-cache
 
 __pycache__
 
-Producer/profiles.json
+Producer/data/*.json
