@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class ProducerConfig:
+class UserConfig:
     NUM_USERS = 100
     FRAUD_PROBABILITY = 0.05
 
@@ -22,3 +22,8 @@ class ProducerConfig:
         "Starbucks": {"category": "food", "avg": 8, "std": 4},
         "Shell": {"category": "fuel", "avg": 50, "std": 15},
     }
+
+
+class Config:
+    def __init__(self) -> None:
+        self.UserConfig = UserConfig()

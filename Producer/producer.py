@@ -7,7 +7,7 @@ import os
 
 from kafka import KafkaProducer
 from faker import Faker
-from config import ProducerConfig
+from config import Config
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -19,7 +19,7 @@ producer = KafkaProducer(
     value_serializer=lambda v: json.dumps(v).encode("utf-8")
 )
 fake = Faker()
-config = ProducerConfig()
+config = Config()
 
 
 users = {}
@@ -31,8 +31,9 @@ with open(os.path.join(dir_path, 'profiles.json'), "r") as f:
 def generate_transaction(user_id, is_fraud=False, fraud_type=None):
     profile = users[user_id]
 
-    merchant = random.choice(list(config.MERCHANT_CATEGORIES.keys()))
-    merchant_info = config.MERCHANT_CATEGORIES[merchant]
+    merchant = random.choice(
+        list(config.UserConfig.MERCHANT_CATEGORIES.keys()))
+    merchant_info = config.UserConfig.MERCHANT_CATEGORIES[merchant]
 
     amount = max(1, random.gauss(merchant_info["avg"], merchant_info["std"]))
     country = profile["home_country"]
@@ -45,21 +46,21 @@ def generate_transaction(user_id, is_fraud=False, fraud_type=None):
             amount *= random.uniform(8, 15)
         elif fraud_type == "geo_jump":
             country = random.choice(
-                [c for c in config.COUNTRY_CURRENCY.keys() if c != profile["home_country"]])
+                [c for c in config.UserConfig.COUNTRY_CURRENCY.keys() if c != profile["home_country"]])
             ip_address = fake.ipv4()
         elif fraud_type == "velocity":
             for _ in range(random.randint(3, 6)):
                 pass
         elif fraud_type == "unusual_time":
             device = random.choice(
-                [d for d in config.DEVICES if d != profile["device"]])
+                [d for d in config.UserConfig.DEVICES if d != profile["device"]])
 
     event = {
         "transaction_id": str(uuid.uuid4()),
         "user_id": user_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "amount": round(amount, 2),
-        "currency": config.COUNTRY_CURRENCY[country],
+        "currency": config.UserConfig.COUNTRY_CURRENCY[country],
         "country": country,
         "device": device,
         "merchant": merchant,
@@ -77,8 +78,8 @@ if __name__ == "__main__":
     print("Starting transaction producer...")
     total_transactions = 0
     while True:
-        user_id = random.randint(1, config.NUM_USERS)
-        is_fraud = random.random() < config.FRAUD_PROBABILITY
+        user_id = random.randint(1, config.UserConfig.NUM_USERS)
+        is_fraud = random.random() < config.UserConfig.FRAUD_PROBABILITY
         fraud_type = None
         if is_fraud:
             fraud_type = random.choice(
