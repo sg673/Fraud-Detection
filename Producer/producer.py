@@ -3,9 +3,12 @@ import time
 import json
 import random
 import uuid
+import os
 
 from kafka import KafkaProducer
 from faker import Faker
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
 TOPIC_NAME = "transactions"
@@ -37,17 +40,9 @@ MERCHANT_CATEGORIES = {
 }
 
 users = {}
-
-
-for user_id in range(1, NUM_USERS + 1):
-    country = random.choice(list(COUNTRY_CURRENCY.keys()))
-    users[user_id] = {
-        "home_country": country,
-        "currency": COUNTRY_CURRENCY[country],
-        "device": random.choice(DEVICES),
-        "payment_method": random.choice(PAYMENT_METHODS),
-        "ip_address": fake.ipv4(),
-    }
+with open(os.path.join(dir_path, 'profiles.json'), "r") as f:
+    users = json.load(f)
+    print(users)
 
 
 def generate_transaction(user_id, is_fraud=False, fraud_type=None):
@@ -95,6 +90,7 @@ def generate_transaction(user_id, is_fraud=False, fraud_type=None):
 
 
 if __name__ == "__main__":
+    pass
     print("Starting transaction producer...")
     total_transactions = 0
     while True:

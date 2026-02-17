@@ -3,3 +3,5 @@ kafka
 ivy-cache
 
 __pycache__
+
+Producer/profiles.json
