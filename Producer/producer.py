@@ -8,6 +8,7 @@ import os
 from kafka import KafkaProducer
 from faker import Faker
 from config import Config
+from user_profiles import generate_profiles
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -26,6 +27,8 @@ users = {}
 with open(os.path.join(dir_path, 'profiles.json'), "r") as f:
     users = json.load(f)
     print(users)
+if not users:
+    users = generate_profiles()
 
 
 def generate_transaction(user_id, is_fraud=False, fraud_type=None):

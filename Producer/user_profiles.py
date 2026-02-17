@@ -31,8 +31,7 @@ def generate_profiles():
     with open(os.path.join(dir_path, 'profiles.json'), "w") as f:
         json.dump(users, f, indent=2)
 
-    print(
-        f"Generated {config.UserConfig.NUM_USERS} user profiles and saved to profiles.json")
+    return users
 
 
 if __name__ == "__main__":
