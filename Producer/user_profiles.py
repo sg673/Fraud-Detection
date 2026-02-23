@@ -5,6 +5,7 @@ import json
 import random
 from faker import Faker
 from config import Config
+from datetime import datetime, timedelta
 
 config = Config()
 
@@ -18,6 +19,7 @@ def generate_profiles():
     for user_id in range(1, config.UserConfig.NUM_USERS + 1):
         country = random.choice(
             list(config.UserConfig.COUNTRY_CURRENCY.keys()))
+        account_age = random.randint(1, 1825)  # 1 day to 5 years
 
         users[user_id] = {
             "home_country": country,
@@ -25,6 +27,8 @@ def generate_profiles():
             "device": random.choice(config.UserConfig.DEVICES),
             "payment_method": random.choice(config.UserConfig.PAYMENT_METHODS),
             "ip_addresses": [fake.ipv4() for _ in range(random.randint(2, 5))],
+            "account_created": (datetime.now() - timedelta(days=account_age)).isoformat(),
+
         }
 
     with open(config.UserConfig.USER_DATA_PATH, "w") as f:
