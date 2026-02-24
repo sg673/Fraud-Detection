@@ -1,7 +1,6 @@
 import json
 from typing import Any, Dict, Optional
-from Producer.custom_types import Merchant, User
-from user_profiles import generate_profiles
+from custom_types import Merchant, User
 
 
 def read_json(path: str) -> Optional[Any]:
@@ -13,6 +12,7 @@ def read_json(path: str) -> Optional[Any]:
 
 
 def load_users(profiles_path: str) -> Dict[str, User]:
+    from user_profiles import generate_profiles
     return read_json(profiles_path) or generate_profiles()
 
 

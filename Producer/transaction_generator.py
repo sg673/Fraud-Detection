@@ -3,7 +3,7 @@ import random
 from typing import Dict
 import uuid
 
-from Producer.custom_types import Merchant, User
+from custom_types import Merchant, User
 
 
 class TransactionGenerator:
