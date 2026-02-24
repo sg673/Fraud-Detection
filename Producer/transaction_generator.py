@@ -1,23 +1,27 @@
 from datetime import datetime, timezone
 import random
+from typing import Dict
 import uuid
+
+from Producer.types import Merchant, User
 
 
 class TransactionGenerator:
-    def __init__(self, config, users, fraud_simulator):
+    def __init__(self, config, users: Dict[str, User], fraud_simulator):
         self.config = config
         self.users = users
         self.fraud_simulator = fraud_simulator
 
     def generate(self, user_id, is_fraud=False, fraud_type=None):
-        profile = self.users[user_id]
+        profile: User = self.users[user_id]
 
-        merchant = random.choice(
+        merchant: str = random.choice(
             list(self.config.UserConfig.MERCHANT_CATEGORIES.keys()))
-        merchant_info = self.config.UserConfig.MERCHANT_CATEGORIES[merchant]
+        merchant_info: Merchant = self.config.UserConfig.MERCHANT_CATEGORIES[merchant]
 
         amount = max(1, random.gauss(
-            merchant_info["avg"], merchant_info["std"]))
+            merchant_info["average_transaction_amount"],
+            merchant_info["standard_deviation_transaction_amount"]))
 
         transaction = {
             "transaction_id": str(uuid.uuid4()),
