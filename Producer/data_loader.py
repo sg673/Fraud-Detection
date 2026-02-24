@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict, Optional
-from Producer.types import Merchant, User
+from Producer.custom_types import Merchant, User
 from user_profiles import generate_profiles
 
 
