@@ -3,13 +3,27 @@ import os
 from user_profiles import generate_profiles
 
 
-def load_users(profiles_path):
+def read_json(path):
     try:
-        with open(profiles_path, "r") as f:
-            users = json.load(f)
-            if users:
-                return users
+        with open(path, "r") as f:
+            content = json.load(f)
+            if content:
+                return content
     except FileNotFoundError:
         pass
 
+
+def load_users(profiles_path):
+    try:
+        return read_json(profiles_path)
+    except FileNotFoundError:
+        pass
     return generate_profiles()
+
+
+def load_merchants(merchants_path):
+    try:
+        return read_json(merchants_path)
+    except FileNotFoundError:
+        pass
+    return

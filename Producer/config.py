@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import os
+from data_loader import load_merchants
 
 
 @dataclass
@@ -13,16 +14,9 @@ class UserConfig:
     PAYMENT_METHODS = ["credit_card", "debit_card",
                        "paypal", "apple_pay", "google_pay"]
 
-    MERCHANT_CATEGORIES = {
-        "Amazon": {"category": "retail", "avg": 45, "std": 25},
-        "Netflix": {"category": "streaming", "avg": 12, "std": 3},
-        "Uber": {"category": "transport", "avg": 18, "std": 8},
-        "Spotify": {"category": "streaming", "avg": 10, "std": 2},
-        "Apple": {"category": "retail", "avg": 150, "std": 100},
-        "Walmart": {"category": "retail", "avg": 65, "std": 30},
-        "Starbucks": {"category": "food", "avg": 8, "std": 4},
-        "Shell": {"category": "fuel", "avg": 50, "std": 15},
-    }
+    # TODO - add ways to generate merchant categories if no data is found
+    MERCHANT_CATEGORIES = load_merchants(os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "data\\merchants.json"))
     USER_DATA_PATH = os.path.join(os.path.dirname(
         os.path.realpath(__file__)), "data\\profiles.json")
 

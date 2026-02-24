@@ -14,6 +14,11 @@ def main():
     config = Config()
     users = load_users(config.UserConfig.USER_DATA_PATH)
 
+    if config.UserConfig.MERCHANT_CATEGORIES is None:
+        print("WARN: No merchant data found, no defaults")
+    if users is None:
+        print("WARN: No user data found")
+
     kafka_client = KafkaClient(KAFKA_BOOTSTRAP_SERVERS, TOPIC_NAME)
     fraud_simulator = FraudSimulator(config)
     transaction_gen = TransactionGenerator(config, users, fraud_simulator)
